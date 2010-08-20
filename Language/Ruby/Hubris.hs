@@ -22,6 +22,8 @@ import Control.Exception
 import Prelude hiding(catch)
 import Monad hiding (when)
 import Data.Typeable
+import GHC.Show
+import GHC.Types
 
 wrap :: (Haskellable a, Rubyable b) => (a->b) -> (Value -> Value)
 wrap func v= unsafePerformIO $ do r <- try (evaluate $ toRuby . func $ toHaskell v)
@@ -51,6 +53,9 @@ class Haskellable a where
 class Rubyable a where
   toRuby :: a -> Value
 
+instance GHC.Show.Show (GHC.Types.IO a) where
+  show _ = "some IO action"
+
 instance Haskellable Int where
   toHaskell v = when v RT_FIXNUM $ fix2int v
 
@@ -60,14 +65,15 @@ instance Rubyable Int where
 
 instance Rubyable a => Rubyable (IO a) where
   toRuby a = unsafePerformIO (a >>= return . toRuby)
+
 instance Haskellable Integer where
   toHaskell v = case rubyType v of
-                  RT_BIGNUM -> read  $ unsafePerformIO (rb_big2str v 10 >>= str2cstr >>= peekCString)
-                  RT_FIXNUM -> fromIntegral $ fix2int v
+                  RT_BIGNUM -> trace ("got a big") $ read  $ unsafePerformIO (rb_big2str v 10 >>= str2cstr >>= peekCString)
+                  RT_FIXNUM -> trace("got a fix") $ fromIntegral $ fix2int v
                   _         -> throw HubrisException -- wonder if it's kosher to just let the pattern match fail...
 
 instance Rubyable Integer where
-  toRuby i = rb_str_to_inum (unsafePerformIO $ (newCAString $ show i) >>= rb_str_new2) 10 1
+  toRuby i = trace ("integer to ruby") $ rb_str_to_inum (unsafePerformIO $ (newCAString $ show i) >>= rb_str_new2) 10 1
 
 instance Haskellable Bool where
   toHaskell v = case rubyType v of
@@ -106,7 +112,7 @@ instance Rubyable S.ByteString where
                                                           
 
 instance Rubyable () where
-  toRuby () = toRuby True -- ???
+  toRuby _  = constToRuby RUBY_Qnil 
 
 instance Haskellable L.ByteString where
   toHaskell v = L.fromChunks [toHaskell v]
