@@ -2,6 +2,11 @@
 
 ## Description
 
+This is here for largely historical interest.
+The real repo is at http://github.com/mwotton/hubris
+
+DO NOT USE THIS
+
 Hubris is a bridge between Ruby and Haskell, between love and bondage,
 between slothful indolence and raw, blazing speed. Hubris will wash
 your car, lie to your boss, and salvage your love life. If you are 
